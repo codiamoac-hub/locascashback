@@ -49,12 +49,21 @@ test('.env.example as Railway imports it: every PASTE_… counts as missing and 
   for (const key of ['DISCORD_BOT_TOKEN', 'GUILD_ID', 'SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_NS', 'WEB_PASSPORT_RPC_SECRET', 'ADMIN_IDS', 'WEBSITE_URL', 'CRON_SECRET', 'POLL_SECONDS', 'FLOOR_CHECK_MINUTES'])
     assert.ok(key in example, `${key} is in .env.example, so Railway shows it`);
   const untouched = startupProblems(readConfig(example)).join('\n');
-  for (const name of ['DISCORD_BOT_TOKEN', 'SUPABASE_URL or SUPABASE_ANON_KEY', 'WEB_PASSPORT_RPC_SECRET', 'ADMIN_IDS', 'WEBSITE_URL', 'CRON_SECRET'])
-    assert.ok(untouched.includes(name), `${name} is reported while it still says PASTE_…`);
+  for (const name of ['DISCORD_BOT_TOKEN', 'SUPABASE_URL', 'SUPABASE_ANON_KEY', 'WEB_PASSPORT_RPC_SECRET', 'ADMIN_IDS', 'WEBSITE_URL', 'CRON_SECRET'])
+    assert.ok(untouched.includes(`${name} still says PASTE_`), `${name} is named while it still says PASTE_…`);
+  assert.equal(untouched.split('\n').length, 7, 'one line per unreplaced variable, nothing doubled');
 
   const filled = { ...example, DISCORD_BOT_TOKEN: 'x', SUPABASE_URL: 'https://p.supabase.co', SUPABASE_ANON_KEY: 'anon', WEB_PASSPORT_RPC_SECRET: 'ab'.repeat(32), ADMIN_IDS: '111111111111111111', WEBSITE_URL: 'https://locas.up.railway.app', CRON_SECRET: 's'.repeat(32) };
   assert.deepEqual(startupProblems(readConfig(filled)), []);
   const testServer = { ...filled, GUILD_ID: '1543227658370809906', SUPABASE_NS: 'test', CRON_SECRET: 'PASTE_FROM_WEBSITE' };
   assert.deepEqual(startupProblems(readConfig(testServer)), [], 'on the test server the CRON_SECRET placeholder is simply ignored');
   assert.equal(readConfig(testServer).cronSecret, null);
+});
+
+test('WEBSITE_URL: a bare domain means https, quotes are dropped, nonsense is shown back', async () => {
+  const { readConfig } = await import('../src/config.js');
+  assert.equal(readConfig({ WEBSITE_URL: 'locaswebsite-production.up.railway.app' }).websiteUrl, 'https://locaswebsite-production.up.railway.app');
+  assert.equal(readConfig({ WEBSITE_URL: '"https://locaswebsite-production.up.railway.app/"' }).websiteUrl, 'https://locaswebsite-production.up.railway.app');
+  assert.match(startupProblems({ ...prod, websiteUrl: 'https://not a site' }).join(), /WEBSITE_URL is "https:\/\/not a site", which is not a web address/);
+  assert.match(startupProblems({ ...prod, websiteUrl: null }).join(), /WEBSITE_URL is empty/);
 });

@@ -5,8 +5,11 @@
 const PLACEHOLDER = /PASTE[_-]/i;
 
 export function readConfig(env = process.env) {
+  const placeholders = [];
   const val = (k) => {
-    const v = env[k]?.trim();
+    /* Pasted values sometimes keep their quotes; they are never part of a value. */
+    const v = env[k]?.trim().replace(/^(["'])(.*)\1$/, '$2').trim();
+    if (v && PLACEHOLDER.test(v)) placeholders.push(k);
     return v && !PLACEHOLDER.test(v) ? v : null;
   };
   const list = (k) =>
@@ -15,7 +18,11 @@ export function readConfig(env = process.env) {
       .map((s) => s.trim())
       .filter(Boolean);
   const num = (k, d) => (val(k) === null ? d : Number(val(k)));
-  const url = (k) => val(k)?.replace(/\/+$/, '') || null;
+  /* "locaswebsite-production.up.railway.app" is taken to mean https://. */
+  const url = (k) => {
+    const v = val(k)?.replace(/\/+$/, '');
+    return v ? (/^[a-z]+:\/\//i.test(v) ? v : `https://${v}`) : null;
+  };
 
   return {
     /* The website's Discord app. Same token as the website's DISCORD_BOT_TOKEN:
@@ -56,6 +63,8 @@ export function readConfig(env = process.env) {
     pollSeconds: num('POLL_SECONDS', 15),
     /* Railway sets PORT; the health endpoint listens there. */
     port: num('PORT', 0),
+    /* Variables still showing their .env.example placeholder. */
+    placeholders,
   };
 }
 
