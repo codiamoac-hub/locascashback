@@ -57,7 +57,7 @@ Same Discord app as the website (application `1554761393805336667`), so no new b
 
 ### 3. Railway
 
-One service, **region EU West, one replica**: `railway.json` sets `europe-west4-drams3a` with `numReplicas: 1`, the start command, the `/health` check and restart on failure. In the service settings, check that the region shows EU West and replicas 1.
+One service, **region EU West, one replica**: `railway.json` sets `europe-west4-drams3a` with `numReplicas: 1`, the start command and restart on failure. In the service settings, check that the region shows EU West and replicas 1. No public domain is needed; when Railway gives the service a `PORT`, the bot also answers `GET /health`.
 
 | Variable | Value |
 |---|---|
