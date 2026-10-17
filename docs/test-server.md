@@ -16,15 +16,15 @@ same snippets, so they are known to work.
 3. **Ticket access**: in the test server, Server Settings → Members → the
    website's bot → add the admin role LOCAS MARKET's test bot uses
    (its `ADMIN_ROLE_ID`). Without it the bot cannot open tickets.
-4. **A test deployment**: in Railway, a second service from this repo (or
-   `npm run dev:test` on your machine with `.env.test`), with the production
-   values except:
+4. **A test deployment**: in Railway, a service from this repo (or
+   `npm run dev:test` on your machine with `.env.test`). Variables →
+   Suggested Variables → add them all, replace every `PASTE_…`, and set:
 
    | Variable | Test value |
    |---|---|
    | `GUILD_ID` | `1543227658370809906` |
    | `SUPABASE_NS` | `test` |
-   | `CRON_SECRET` | leave empty (the floor check is production-only) |
+   | `CRON_SECRET` | leave it as it is (the floor check is production-only) |
    | `WEBSITE_URL` | the website's address (only the Claim button uses it) |
 
    The log must say `online · guild 1543227658370809906 · ns=test` and

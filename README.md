@@ -57,6 +57,8 @@ Same Discord app as the website (application `1554761393805336667`), so no new b
 
 ### 3. Railway
 
+**Variables come in by themselves**: Railway reads `.env.example` and shows every variable under Variables → Suggested Variables. Add them all, then replace each `PASTE_…` value (the website's `.env.local` has most of them). A value still saying `PASTE_…` counts as missing: the bot refuses to start and names it. On the test server change `GUILD_ID` to `1543227658370809906` and `SUPABASE_NS` to `test`; `CRON_SECRET` is ignored there.
+
 One service, **region EU West, one replica**: `railway.json` sets `europe-west4-drams3a` with `numReplicas: 1`, the start command and restart on failure. In the service settings, check that the region shows EU West and replicas 1. No public domain is needed; when Railway gives the service a `PORT`, the bot also answers `GET /health`.
 
 | Variable | Value |
