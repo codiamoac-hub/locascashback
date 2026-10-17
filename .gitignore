@@ -1,0 +1,9 @@
+node_modules/
+*.log
+.DS_Store
+
+# Every env file stays local — .env.prod, .env.test, timestamped backups.
+.env
+.env.*
+# …except the committed template.
+!.env.example

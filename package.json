@@ -1,0 +1,19 @@
+{
+  "name": "locascashback",
+  "version": "1.0.0",
+  "description": "LOCAS CASHBACK - Protected Buyer notices for Discord. Runs the website's 24h floor check every 30 minutes and posts \"Cashback eligible\" and paid receipts in deal tickets. Never sends crypto, never holds a key.",
+  "main": "src/index.js",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "dev:test": "node --env-file=.env.test --watch src/index.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.27.0"
+  }
+}
