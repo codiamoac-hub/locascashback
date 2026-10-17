@@ -4,7 +4,7 @@
  * closes finished ones); this only calls it, with the same CRON_SECRET. It is
  * safe at any rate, so a restart or a missed run costs at most one reading.
  */
-export function createFloorCheck({ websiteUrl, cronSecret, fetch = globalThis.fetch, log = console, onFinalized }) {
+export function createFloorCheck({ websiteUrl, cronSecret, ns, fetch = globalThis.fetch, log = console, onFinalized }) {
   let running = null;
 
   async function once() {
@@ -24,6 +24,13 @@ export function createFloorCheck({ websiteUrl, cronSecret, fetch = globalThis.fe
       return { ok: false, status: res.status };
     }
     const r = await res.json().catch(() => ({}));
+    /* The website says which namespace it serves (SUPABASE_NS there). A test
+       bot calling the live site, or the other way round, ran the other site's
+       check: harmless, but its cashbacks are not this bot's to announce. */
+    if (ns && r.ns && r.ns !== ns) {
+      log.error(`[floor] WEBSITE_URL is the ${r.ns} website, but this bot runs ns=${ns}: point WEBSITE_URL and CRON_SECRET at the ${ns} site.`);
+      return { ok: false, wrongSite: r.ns };
+    }
     log.log(`[floor] ${summary(r)} · ${Date.now() - started} ms`);
     /* A project that closed below just created cashbacks: announce them now
        rather than on the next poll. */

@@ -76,7 +76,7 @@ client.once(Events.ClientReady, async (c) => {
   console.log(`> notices  every ${CFG.pollSeconds}s · ${hello.notices_pending} waiting · admins ${CFG.adminIds.join(', ')}`);
 
   if (floorCheckOn(CFG)) {
-    const floor = createFloorCheck({ websiteUrl: CFG.websiteUrl, cronSecret: CFG.cronSecret, onFinalized: pollNotices });
+    const floor = createFloorCheck({ websiteUrl: CFG.websiteUrl, cronSecret: CFG.cronSecret, ns: CFG.supabase.ns, onFinalized: pollNotices });
     const runFloor = async () => {
       const r = await floor.run();
       state.lastFloor = { at: new Date().toISOString(), ok: r.ok };
@@ -85,7 +85,7 @@ client.once(Events.ClientReady, async (c) => {
     timers.push(setTimeout(runFloor, 60_000), setInterval(runFloor, CFG.floorCheckMinutes * 60_000));
     state.floor = floor;
   } else {
-    console.log(`> floor    off (${CFG.supabase.ns === 'prod' ? 'set WEBSITE_URL and CRON_SECRET' : 'the website\'s floor check is production-only'})`);
+    console.log(`> floor    off (${CFG.supabase.ns === 'prod' ? 'set WEBSITE_URL and CRON_SECRET' : 'set CRON_SECRET to the test site\'s to run its floor check'})`);
   }
 
   await pollNotices();

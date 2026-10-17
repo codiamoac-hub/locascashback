@@ -13,7 +13,7 @@ export function startupProblems(cfg) {
   const out = [];
   const ns = cfg.supabase.ns;
   /* Named first, in plain words: a value that was never replaced. On the test
-     server an unreplaced CRON_SECRET is fine, it is not used there. */
+     server an unreplaced CRON_SECRET is fine: it only leaves the floor check off. */
   const unreplaced = (cfg.placeholders ?? []).filter((k) => !(k === 'CRON_SECRET' && ns !== 'prod'));
   for (const k of unreplaced) out.push(`${k} still says PASTE_…: replace it with the real value in Railway → Variables, then redeploy.`);
   const ph = (k) => unreplaced.includes(k);
@@ -59,5 +59,5 @@ export function startupProblems(cfg) {
   return out;
 }
 
-/** The floor check is the website's production job; a test bot never triggers it. */
-export const floorCheckOn = (cfg) => cfg.supabase.ns === 'prod' && Boolean(cfg.websiteUrl && cfg.cronSecret);
+/** On whenever the website and its CRON_SECRET are set: the live site in production, the test site on the test server. */
+export const floorCheckOn = (cfg) => Boolean(cfg.websiteUrl && cfg.cronSecret);

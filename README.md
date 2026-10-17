@@ -36,7 +36,7 @@ Fourth bot in the set, alongside **LOCASDEAL**, **LOCAS MARKET** and **LocasTXN*
 ```bash
 npm install
 cp .env.example .env.test   # fill in (see below); .env.* files never leave your machine
-npm test                    # 40 tests; with ../locaswebsite present, also against the real SQL
+npm test                    # 43 tests; with ../locaswebsite present, also against the real SQL
 npm run dev:test            # run against .env.test
 ```
 
@@ -57,7 +57,7 @@ Same Discord app as the website (application `1554761393805336667`), so no new b
 
 ### 3. Railway
 
-**Variables come in by themselves**: Railway reads `.env.example` and shows every variable under Variables → Suggested Variables. Add them all, then replace each `PASTE_…` value (the website's `.env.local` has most of them). A value still saying `PASTE_…` counts as missing: the bot refuses to start and names it. On the test server change `GUILD_ID` to `1543227658370809906` and `SUPABASE_NS` to `test`; `CRON_SECRET` is ignored there.
+**Variables come in by themselves**: Railway reads `.env.example` and shows every variable under Variables → Suggested Variables. Add them all, then replace each `PASTE_…` value (the website's `.env.local` has most of them). A value still saying `PASTE_…` counts as missing: the bot refuses to start and names it. On the test server change `GUILD_ID` to `1543227658370809906` and `SUPABASE_NS` to `test`, and point `WEBSITE_URL` and `CRON_SECRET` at the test website.
 
 One service, **region EU West, one replica**: `railway.json` sets `europe-west4-drams3a` with `numReplicas: 1`, the start command and restart on failure. In the service settings, check that the region shows EU West and replicas 1. No public domain is needed; when Railway gives the service a `PORT`, the bot also answers `GET /health`.
 
@@ -70,8 +70,8 @@ One service, **region EU West, one replica**: `railway.json` sets `europe-west4-
 | `SUPABASE_ANON_KEY` | The website's `SUPABASE_ANON_KEY`. Never the service-role key |
 | `WEB_PASSPORT_RPC_SECRET` | The website's value (64 hex) |
 | `ADMIN_IDS` | The website's `ADMIN_IDS`: pinged on every "Cashback eligible" |
-| `WEBSITE_URL` | The website's address on Railway, `https://…` (Claim button + floor check) |
-| `CRON_SECRET` | The website's `CRON_SECRET`. Required in production; the test bot never runs the floor check |
+| `WEBSITE_URL` | The website's address on Railway, `https://…` (Claim button + floor check); the test website for a test bot |
+| `CRON_SECRET` | The website's `CRON_SECRET`. Required in production; on the test server the test website's, or unset to leave the floor check off |
 | `POLL_SECONDS` | Optional, default `15`: how fast a receipt follows Mark paid |
 | `FLOOR_CHECK_MINUTES` | Optional, default `30` |
 | `PORT` | Set by Railway |

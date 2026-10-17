@@ -32,9 +32,10 @@ test('production needs CRON_SECRET and an https website; secrets and ids are che
   assert.match(startupProblems({ ...prod, supabase: { ...prod.supabase, anonKey: null } }).join(), /never the service-role key/);
 });
 
-test('the floor check runs in production only', () => {
+test('the floor check runs wherever the website and its secret are set', () => {
   assert.equal(floorCheckOn(prod), true);
-  assert.equal(floorCheckOn({ ...test_, cronSecret: 's'.repeat(32) }), false, 'a test bot never triggers the production job');
+  assert.equal(floorCheckOn({ ...test_, cronSecret: 's'.repeat(32) }), true, 'the test site\'s check, on the test server');
+  assert.equal(floorCheckOn({ ...test_, cronSecret: null }), false);
 });
 
 test('.env.example as Railway imports it: every PASTE_… counts as missing and is named; filling them starts the bot', async () => {

@@ -1,10 +1,11 @@
 # Testing LOCAS CASHBACK on the test server
 
 Everything here happens in the `test` namespace and on the test server
-(`1543227658370809906`). The website never reads it and production never sees
-it. The website's part (creating a cashback, marking it paid) is played by two
-SQL snippets in [`test-server.sql`](test-server.sql); the test suite runs the
-same snippets, so they are known to work.
+(`1543227658370809906`); production never sees it. With the test website
+running (`SUPABASE_NS=test`, website migration 0015), do the website's part
+there: mint in `/admin`, decide the floor, request, approve, Mark paid. Without
+it, two SQL snippets in [`test-server.sql`](test-server.sql) play that part; the
+test suite runs the same snippets, so they are known to work.
 
 ## Before you start
 
@@ -24,11 +25,13 @@ same snippets, so they are known to work.
    |---|---|
    | `GUILD_ID` | `1543227658370809906` |
    | `SUPABASE_NS` | `test` |
-   | `CRON_SECRET` | leave it as it is (the floor check is production-only) |
-   | `WEBSITE_URL` | the website's address (only the Claim button uses it) |
+   | `WEBSITE_URL` | the **test** website's address (website repo, `docs/test-server.md`) |
+   | `CRON_SECRET` | the test website's `CRON_SECRET`, to run its floor check; or leave it, and the floor check stays off |
 
-   The log must say `online · guild 1543227658370809906 · ns=test` and
-   `floor off`. Swap `GUILD_ID` to the production server once on purpose: it
+   The log must say `online · guild 1543227658370809906 · ns=test`, then
+   either the floor check line or `floor off`. Pointed at the live website by
+   mistake, each floor check logs "WEBSITE_URL is the prod website, but this
+   bot runs ns=test". Swap `GUILD_ID` to the production server once on purpose: it
    must refuse to start with "SUPABASE_NS=test belongs to guild
    1543227658370809906, but GUILD_ID is …".
 

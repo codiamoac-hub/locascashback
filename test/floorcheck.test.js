@@ -37,6 +37,19 @@ test('a wrong secret or a down website is logged, never thrown; runs never overl
   assert.equal(calls, 1);
 });
 
+test('a bot pointed at the other namespace\'s website says so and announces nothing', async () => {
+  const errors = [];
+  let triggered = 0;
+  const run = (ns, site) => createFloorCheck({ websiteUrl: 'https://x', cronSecret: 's'.repeat(32), ns, log: { ...quiet, error: (m) => errors.push(m) }, onFinalized: () => triggered++,
+    fetch: async () => reply(200, { ns: site, finalized: [{ project: 'B', status: 'below' }] }) }).run();
+  assert.deepEqual(await run('test', 'prod'), { ok: false, wrongSite: 'prod' });
+  assert.match(errors[0], /WEBSITE_URL is the prod website, but this bot runs ns=test/);
+  assert.equal(triggered, 0);
+  assert.equal((await run('test', 'test')).ok, true);
+  assert.equal((await run('prod', undefined)).ok, true, 'a website from before it said its namespace');
+  assert.equal(triggered, 2);
+});
+
 test('the log line says what happened', () => {
   assert.equal(
     summary({ opened: 1, readings: [{ project: 'A', outcome: 'ok' }, { project: 'B', outcome: 'error', error: 'OpenSea answered 503' }], finalized: [{ project: 'C', status: 'below' }] }),
