@@ -64,7 +64,7 @@ before(async () => {
     insert into public.listings values ('LT','test','Test Project','wl','x',33.30,10,1,'live','1','1',now());
     insert into public.deals values ('test','t9','${testGuild}','${buyer}','complete',33.30,3,'LT',now(),now(),null,'1542000000000000009');
   `);
-  for (const f of readdirSync(join(site, 'supabase/migrations')).filter((f) => /^00(0[5-9]|1\d)_.*\.sql$/.test(f)).sort()) {
+  for (const f of readdirSync(join(site, 'supabase/migrations')).filter((f) => /^00(0[5-9]|[1-9]\d)_.*\.sql$/.test(f)).sort()) {
     await db.exec(readFileSync(join(site, 'supabase/migrations', f), 'utf8'));
   }
   await db.query('insert into locas_web_private.passport_config values (true, $1)', [secret]);
