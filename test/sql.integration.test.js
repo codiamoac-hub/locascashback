@@ -89,7 +89,7 @@ test('eligible, then paid: each posted once, with the database\'s numbers, and r
   assert.deepEqual(await w.tick(), { claimed: 1, posted: 1 });
   const card = discord.ticket[0].embeds[0];
   assert.equal(card.title, 'Cashback eligible');
-  for (const line of ['You paid : **520.00 USD**', 'Mint price : **260.00 USD**', '24h median floor : **150.00 USD**  ·  **−42.31%**', '## Cashback · 78.00 USD', 'Quantity : **2**'])
+  for (const line of ['You paid : **520.00 USD**', 'Mint price : **260.00 USD**', 'Median floor : **150.00 USD**  ·  **−42.31%**', '## Cashback · 78.00 USD', 'Quantity : **2**'])
     assert.ok(card.description.includes(line), line);
   assert.deepEqual(await w.tick(), { claimed: 0, posted: 0 }, 'nothing twice');
 
@@ -133,7 +133,7 @@ test('docs/test-server.sql works as written: the test bot posts both cards, prod
   await db.exec(step('insert into public.web_cashbacks', 'do nothing;'));
   assert.deepEqual(await w.tick(), { claimed: 1, posted: 1 });
   const card = discord.ticket[0].embeds[0].description;
-  for (const line of ['Spot Type : **WL**  ·  Quantity : **3**', 'You paid : **99.90 USD**', 'WL price : **1,200.00 USD**', '24h median floor : **950.50 USD**  ·  **\u221220.79%**', '## Cashback · 14.99 USD'])
+  for (const line of ['Spot Type : **WL**  ·  Quantity : **3**', 'You paid : **99.90 USD**', 'WL price : **1,200.00 USD**', 'Median floor : **950.50 USD**  ·  **\u221220.79%**', '## Cashback · 14.99 USD'])
     assert.ok(card.includes(line), line);
 
   await db.exec(step('update public.web_cashbacks', "deal_id = 't9';"));

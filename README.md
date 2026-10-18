@@ -3,9 +3,9 @@
 The Protected Buyer bot for the LOCAS server. It works with the LOCAS website (repo `locaswebsite`) and does three things:
 
 ```
-every 30 min   →  the website's 24h floor check  (/api/cron/protection)
+every 30 min   →  the website's floor check  (/api/cron/protection)
                     └── a project closes under its mint price → cashbacks are created
-                        for every protected deal completed before the project sold out
+                        for every protected deal completed before the mint timer ended
 
 cashback created  →  "Cashback eligible" in that deal's ticket
                        pings the buyer and every admin · "Claim cashback" button → website

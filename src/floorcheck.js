@@ -1,5 +1,5 @@
 /**
- * Job 1: the website's 24h floor check, every 30 minutes. The website does
+ * Job 1: the website's floor check, every 30 minutes. The website does
  * the work (/api/cron/protection: opens windows, reads OpenSea / Magic Eden,
  * closes finished ones); this only calls it, with the same CRON_SECRET. It is
  * safe at any rate, so a restart or a missed run costs at most one reading.
