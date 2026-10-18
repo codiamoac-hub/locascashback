@@ -79,6 +79,7 @@ export function eligibleCard(n, { site, adminIds = [], dm = false }) {
         `${priceLabel} : **${money(n.threshold_usd)}**`,
         `24h median floor : **${money(n.floor_usd)}**${fall ? `  ·  **${fall}**` : ''}`,
         `Your rate : **${n.rate_pct}%**  ·  locked when your deal completed`,
+        'Covered : deal completed before the project sold out',
         '',
         `## Cashback · ${cents(n.cashback_usd)} USD`,
         `-# ${n.rate_pct}% of ${cents(n.paid_usd)} USD, exact to the cent`,

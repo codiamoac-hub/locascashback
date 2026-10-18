@@ -33,6 +33,7 @@ test('eligible: every number, exact to the cent, the same as the website', () =>
       'Mint price : **260.00 USD**',
       '24h median floor : **150.00 USD**  ·  **−42.31%**',
       'Your rate : **15%**  ·  locked when your deal completed',
+      'Covered : deal completed before the project sold out',
       '',
       '## Cashback · 78.00 USD',
       '-# 15% of 520.00 USD, exact to the cent',
