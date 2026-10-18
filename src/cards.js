@@ -60,7 +60,8 @@ export function explorerLink(chainId, hash) {
  */
 export function eligibleCard(n, { site, adminIds = [], dm = false }) {
   const t = typeOf(n.spot_type);
-  const priceLabel = t?.label === 'WL' ? 'WL price' : 'Mint price';
+  // The database says which price the floor was measured against (WL price for WL spots and for free mints, 0021).
+  const priceLabel = n.threshold_label || (t?.label === 'WL' ? 'WL price' : 'Mint price');
   const fall = drop(n.drop_pct);
   const money = (v) => (v == null ? '—' : `${cents(v)} USD`);
 

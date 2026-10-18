@@ -43,6 +43,7 @@ test('eligible: every number, exact to the cent, the same as the website', () =>
   );
   assert.ok(e.footer.text.startsWith('LOCAS CASHBACK'));
   assert.match(json(eligibleCard({ ...base, spot_type: 'WL', threshold_usd: '200.00' }, { site })).description, /WL price : \*\*200\.00 USD\*\*/);
+  assert.match(json(eligibleCard({ ...base, threshold_label: 'WL price', threshold_usd: '100.00' }, { site })).description, /WL price : \*\*100\.00 USD\*\*/, 'a free mint: the database names the price');
 });
 
 test('eligible: a "Claim cashback" link button to the cashback on /protection', () => {
