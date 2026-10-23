@@ -12,10 +12,11 @@ const base = {
 };
 const json = (payload) => payload.embeds[0].toJSON();
 
-test('eligible, in the ticket: pings the buyer and every admin, and nobody else', () => {
+test('eligible, in the ticket: tags nobody, not the buyer and not the admins', () => {
   const p = eligibleCard(base, { site, adminIds: [...admins, buyer, admins[0]] });
-  assert.equal(p.content, `<@${buyer}> your Protected Buyer cashback is ready to claim.\n-# <@${admins[0]}> <@${admins[1]}>`);
-  assert.deepEqual(p.allowedMentions, { parse: [], users: [buyer, ...admins] });
+  assert.equal(p.content, 'Your Protected Buyer cashback on **Solana \\*Business\\* Frogs** is ready to claim.');
+  assert.doesNotMatch(p.content, /<@/);
+  assert.deepEqual(p.allowedMentions, { parse: [] });
 });
 
 test('eligible: every number, exact to the cent, the same as the website', () => {
@@ -62,10 +63,10 @@ test('eligible, by DM: the same card, pinging nobody', () => {
 
 const paid = { ...base, kind: 'paid', payout_chain: 'base', payout_asset: 'USDC', payout_address: '0x' + 'ab'.repeat(20), tx_hash: '0x' + 'cd'.repeat(32), paid_at: '2026-10-17T20:00:00.000Z' };
 
-test('receipt: pings the buyer only, shows amount, token, network, wallet and the explorer', () => {
+test('receipt: tags nobody, shows amount, token, network, wallet and the explorer', () => {
   const p = receiptCard(paid, { site });
-  assert.equal(p.content, `<@${buyer}> your **Solana \\*Business\\* Frogs** cashback has been sent.`);
-  assert.deepEqual(p.allowedMentions, { parse: [], users: [buyer] });
+  assert.equal(p.content, 'Your **Solana \\*Business\\* Frogs** cashback has been sent.');
+  assert.deepEqual(p.allowedMentions, { parse: [] });
   const e = json(p);
   assert.equal(e.title, 'Cashback paid');
   assert.equal(e.author.name, 'LOCAS CASHBACK · Base');

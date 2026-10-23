@@ -11,7 +11,7 @@ test('eligible, buyer can see the ticket: posted once in the ticket, no DM', asy
   assert.deepEqual(r, { done: true, channel_message_id: d.ticket[0].id, dm_state: 'not_needed', dm_message_id: null, error: null });
   assert.equal(d.calls.post, 1); assert.equal(d.calls.dm, 0);
   assert.equal(d.ticket[0].payload.enforceNonce, true, 'Discord drops a duplicate from an overlapping replica');
-  assert.match(d.ticket[0].payload.content, /<@402914829112836096>.*\n-# <@111111111111111111>/);
+  assert.doesNotMatch(d.ticket[0].payload.content, /<@/, 'the ticket card tags nobody');
 });
 
 test('a restart between posting and recording never posts twice', async () => {
@@ -67,12 +67,12 @@ test('never a public channel, another server, or a deal without a ticket', async
   }
 });
 
-test('receipt: only in the deal ticket, pinging the buyer only, even when the buyer can no longer see it', async () => {
+test('receipt: only in the deal ticket, tagging nobody, even when the buyer can no longer see it', async () => {
   const d = fakeDiscord({ access: { state: 'ok', buyerCanSee: false } });
   const r = await deliver(paidNotice(), ctx(d));
   assert.deepEqual(r, { done: true, channel_message_id: d.ticket[0].id, dm_state: 'not_needed' });
   assert.equal(d.calls.dm, 0, 'no DM for a receipt');
-  assert.deepEqual(d.ticket[0].payload.allowedMentions, { parse: [], users: ['402914829112836096'] });
+  assert.deepEqual(d.ticket[0].payload.allowedMentions, { parse: [] });
   await deliver(paidNotice(), ctx(d));
   assert.equal(d.calls.post, 1, 'and only once');
 });

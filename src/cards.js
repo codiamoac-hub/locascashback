@@ -58,7 +58,7 @@ export function explorerLink(chainId, hash) {
  * In the ticket it pings the buyer and every admin; in a DM (when the buyer
  * can no longer see the ticket) it pings nobody.
  */
-export function eligibleCard(n, { site, adminIds = [], dm = false }) {
+export function eligibleCard(n, { site }) {
   const t = typeOf(n.spot_type);
   // The database says which price the floor was measured against (WL price for WL spots and for free mints, 0021).
   const priceLabel = n.threshold_label || (t?.label === 'WL' ? 'WL price' : 'Mint price');
@@ -95,24 +95,13 @@ export function eligibleCard(n, { site, adminIds = [], dm = false }) {
     new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Claim cashback').setURL(claimUrl(site, n.cashback_id))
   );
 
-  if (dm) {
-    return {
-      content: `Your Protected Buyer cashback on **${plain(n.project)}** is ready to claim.`,
-      embeds: [embed],
-      components: [row],
-      allowedMentions: { parse: [] },
-    };
-  }
-  const admins = [...new Set(adminIds)].filter((id) => id !== n.buyer_id);
+  /* Nobody is tagged, in the ticket or the DM: the card sits in the buyer's own
+     ticket, so it needs no ping, and the admins are not called to it either. */
   return {
-    /* Mentions only notify from the content, never from inside an embed. The
-       allow-list names exactly these people, so nothing else can ping. */
-    content: [`<@${n.buyer_id}> your Protected Buyer cashback is ready to claim.`, admins.length ? `-# ${admins.map((id) => `<@${id}>`).join(' ')}` : null]
-      .filter(Boolean)
-      .join('\n'),
+    content: `Your Protected Buyer cashback on **${plain(n.project)}** is ready to claim.`,
     embeds: [embed],
     components: [row],
-    allowedMentions: { parse: [], users: [n.buyer_id, ...admins] },
+    allowedMentions: { parse: [] },
   };
 }
 
@@ -163,9 +152,9 @@ export function receiptCard(n, { site }) {
     : [];
 
   return {
-    content: `<@${n.buyer_id}> your **${plain(n.project)}** cashback has been sent.`,
+    content: `Your **${plain(n.project)}** cashback has been sent.`,
     embeds: [embed],
     components,
-    allowedMentions: { parse: [], users: [n.buyer_id] },
+    allowedMentions: { parse: [] },
   };
 }
