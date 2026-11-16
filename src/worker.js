@@ -20,7 +20,7 @@ export function createNoticeWorker({ rpc, deliverOne, worker = workerId(), limit
   async function once() {
     let list;
     try {
-      list = await rpc.claim(worker, limit);
+      list = [...(await rpc.claim(worker, limit)), ...((await rpc.claimNone?.(worker, limit)) ?? [])];
     } catch (e) {
       log.error(`[notices] claim failed: ${e.message}`);
       return { claimed: 0, posted: 0 };
@@ -34,12 +34,15 @@ export function createNoticeWorker({ rpc, deliverOne, worker = workerId(), limit
         result = { done: false, error: describe(e) };
       }
       if (result.done) posted++;
-      const what = `${n.kind === 'paid' ? 'receipt' : 'eligible'} · ${n.project} · ${n.cashback_id}`;
+      const none = n.kind === 'none';
+      const what = `${n.kind === 'paid' ? 'receipt' : none ? 'no cashback' : 'eligible'} · ${n.project} · ${none ? `deal ${n.deal_id}` : n.cashback_id}`;
       log[result.done ? 'log' : 'warn'](
         `[notices] ${what} → ${result.done ? 'posted' : result.skipped ? 'skipped' : 'retry later'}${result.error ? ` · ${result.error}` : ''}`
       );
       try {
-        const recorded = await rpc.done(worker, n.cashback_id, n.kind, result);
+        const recorded = none
+          ? await rpc.doneNone(worker, n.deal_id, n.listing_id, result)
+          : await rpc.done(worker, n.cashback_id, n.kind, result);
         if (!recorded) log.warn(`[notices] ${what}: the lease had moved to another worker; it records its own result`);
       } catch (e) {
         log.error(`[notices] ${what}: could not record (${e.message}); the next claim finds the message and records it`);

@@ -75,6 +75,8 @@ export const CFG = readConfig();
 export const COLOR = {
   eligible: 0x1d9e75,
   paid: 0x5b8cff,
+  /* Neutral grey: nothing is owed and nothing went wrong. */
+  none: 0x80848e,
 };
 
 export const TYPES = {

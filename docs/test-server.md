@@ -64,6 +64,14 @@ test suite runs the same snippets, so they are known to work.
    is posted, the log says `retry later · LOCAS CASHBACK can't post in this
    ticket…`. Give the role back: it posts on the next retry (within 2–4 min).
 9. **Clean up.** Block 5 deletes the test cashbacks and their notices.
+10. **No cashback.** Needs the website repo's
+    `supabase/migrations/0054_no_cashback_notice.sql`. After block 5, run
+    block 6 with `PASTE_DEAL_ID` replaced (twice). Within ~15 seconds the
+    ticket gets "No cashback on this deal": what you paid, mint (or WL) price
+    1,200.00, "Floor 12h after the mint : 1,350.25 USD", and "View floor on
+    OpenSea" (a made-up collection, so the page is empty). No amount, nobody
+    tagged. Restart the bot: no second card. Block 7 shows it `done`;
+    block 8 cleans up.
 
 ## Then production
 

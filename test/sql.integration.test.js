@@ -145,3 +145,29 @@ test('docs/test-server.sql works as written: the test bot posts both cards, prod
   await db.exec(step("delete from public.web_cashbacks where ns = 'test'", ';'));
   assert.equal((await db.query(`select count(*)::int as n from public.web_cashback_notices where ns = 'test'`)).rows[0].n, 0, 'clean-up takes the notices with it');
 });
+
+test('"No cashback", docs/test-server.sql block 6 as written: one card with the database\'s numbers, recorded, never twice', opts, async () => {
+  const sql = readFileSync(join(import.meta.dirname, '..', 'docs', 'test-server.sql'), 'utf8').replaceAll('PASTE_DEAL_ID', 't9');
+  const from = (start) => sql.slice(sql.indexOf(start));
+  const block6 = from('insert into public.web_project_mints').split('-- Within ~15 seconds')[0];
+  const discord = fakeDiscord();
+  const deliverOne = (n) => deliver(n, { discord, site: 'https://locas.example', adminIds: [] });
+  const w = createNoticeWorker({ rpc: rpcFor('test', testGuild), worker: 'it-none', log: quiet, deliverOne });
+
+  assert.deepEqual(await w.tick(), { claimed: 0, posted: 0 }, 'nothing decided yet');
+  await db.exec(block6);
+  assert.deepEqual(await w.tick(), { claimed: 1, posted: 1 });
+  const card = discord.ticket[0].embeds[0];
+  assert.equal(card.title, 'No cashback on this deal');
+  for (const line of ['Project Name : **Test Project**', 'Spot Type : **WL**  ·  Quantity : **3**', 'You paid : **99.90 USD**', 'WL price : **1,200.00 USD**', 'Floor 12h after the mint : **1,350.25 USD**',
+    'The floor stayed at or above the WL price, so no cashback is due on this deal.'])
+    assert.ok(card.description.includes(line), `${line}\n${card.description}`);
+  assert.equal(discord.ticket[0].payload.components[0].toJSON().components[0].url, 'https://opensea.io/collection/test-floor-held');
+  assert.deepEqual(await w.tick(), { claimed: 0, posted: 0 }, 'nothing twice');
+  assert.deepEqual(await createNoticeWorker({ rpc: rpcFor(), worker: 'it-prod', log: quiet, deliverOne: async () => assert.fail('production must not see test rows') }).tick(), { claimed: 0, posted: 0 });
+
+  const recorded = (await db.query(from('select deal_id, state, channel_message_id').split(';')[0])).rows;
+  assert.deepEqual(recorded.map((r) => [r.deal_id, r.state, r.channel_message_id]), [['t9', 'done', discord.ticket[0].id]]);
+  await db.exec(from("delete from public.web_no_cashback_notices where ns = 'test'"));
+  assert.equal((await db.query(`select count(*)::int as n from public.web_project_mints where ns = 'test'`)).rows[0].n, 0);
+});

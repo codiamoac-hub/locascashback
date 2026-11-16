@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { eligibleCard, explorerLink, isOurMessage, nonceFor, receiptCard } from '../src/cards.js';
+import { eligibleCard, explorerLink, floorLink, isOurMessage, noCashbackCard, nonceFor, receiptCard } from '../src/cards.js';
+import { noneNotice } from './fakes.js';
 
 const site = 'https://locas.example';
 const id = '7d1f3c2a-9b4e-4c1d-8e2f-0a1b2c3d4e5f';
@@ -107,4 +108,57 @@ test('recognising its own earlier card, for the restart check', () => {
   assert.equal(isOurMessage(msg('BOT', 'Cashback eligible', `${site}/protection#cashback-other`), 'BOT', 'eligible', id), false);
   assert.ok(nonceFor('eligible', id).length <= 25);
   assert.notEqual(nonceFor('eligible', id), nonceFor('paid', id));
+});
+
+test('no cashback: the price, the floor 12h after the mint and the reason; no amount, no tag, a button to the floor', () => {
+  const p = noCashbackCard(noneNotice(), { site });
+  const e = json(p);
+  assert.equal(p.content, 'No cashback on your **demarco** deal: the floor held.');
+  assert.deepEqual(p.allowedMentions, { parse: [] });
+  const button = p.components[0].toJSON().components[0];
+  assert.deepEqual([button.label, button.url], ['View floor on OpenSea', 'https://opensea.io/collection/asperites']);
+  assert.equal(e.title, 'No cashback on this deal');
+  assert.equal(e.url, `${site}/protection#deal-304`);
+  assert.equal(
+    e.description,
+    [
+      'Project Name : **demarco**',
+      'Spot Type : **GTD**  ·  Quantity : **5**',
+      '',
+      'You paid : **12.50 USD**',
+      'WL price : **2.00 USD**',
+      'Floor 12h after the mint : **3.40 USD**',
+      '',
+      'The floor stayed at or above the WL price, so no cashback is due on this deal.',
+      '-# Protected Buyer pays only when the floor closes under the price.',
+    ].join('\n')
+  );
+  assert.doesNotMatch(e.description, /Cashback ·|Claim/);
+});
+
+test('no cashback: a moved timer is not called 12h, and a mint price reads as one', () => {
+  const moved = json(noCashbackCard(noneNotice({ check_hours: 7.5, threshold_label: 'Mint price', threshold_usd: '260.00', floor_usd: '260.00' }), { site })).description;
+  assert.ok(moved.includes('Floor after the mint : **260.00 USD**'), moved);
+  assert.ok(moved.includes('The floor stayed at or above the mint price, so no cashback is due on this deal.'), moved);
+  assert.ok(moved.includes('Mint price : **260.00 USD**'));
+  assert.ok(json(noCashbackCard(noneNotice({ check_hours: 6 }), { site })).description.includes('Floor 6h after the mint : **3.40 USD**'));
+});
+
+test('no cashback: the floor button only for a known marketplace and a clean slug', () => {
+  assert.deepEqual(floorLink('magiceden', 'okay_bears'), { label: 'View floor on Magic Eden', url: 'https://magiceden.io/marketplace/okay_bears' });
+  assert.equal(floorLink('opensea', 'https://evil.example/x'), null);
+  assert.equal(floorLink('opensea', 'a b'), null);
+  assert.equal(floorLink('opensea', null), null);
+  assert.equal(floorLink('blur', 'asperites'), null);
+  assert.deepEqual(noCashbackCard(noneNotice({ floor_slug: null }), { site }).components, [], 'no slug: no button');
+});
+
+test('no cashback: recognised by its deal, never mistaken for another card or another deal', () => {
+  const msg = (title, url) => ({ author: { id: 'BOT' }, embeds: [{ title, url }] });
+  assert.equal(isOurMessage(msg('No cashback on this deal', `${site}/protection#deal-304`), 'BOT', 'none', '304'), true);
+  assert.equal(isOurMessage(msg('No cashback on this deal', `${site}/protection#deal-3040`), 'BOT', 'none', '304'), false);
+  assert.equal(isOurMessage(msg('Cashback eligible', `${site}/protection#deal-304`), 'BOT', 'none', '304'), false);
+  assert.equal(isOurMessage(msg('No cashback on this deal', `${site}/protection#cashback-304`), 'BOT', 'none', '304'), false);
+  assert.ok(nonceFor('none', '304').length <= 25);
+  assert.notEqual(nonceFor('none', '304'), nonceFor('eligible', '304'));
 });

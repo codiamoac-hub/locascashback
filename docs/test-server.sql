@@ -42,3 +42,32 @@ select c.deal_id, n.kind, n.state, n.channel_message_id, n.dm_state, n.attempts,
 
 -- 5. Clean up when done (its notices go with it).
 delete from public.web_cashbacks where ns = 'test';
+
+-- 6. "No cashback": as if the deal's project had held its floor (website
+--    migration 0054). Use a deal with no cashback: run block 5 first, or pick
+--    another deal. Replace PASTE_DEAL_ID twice. The mint price (1200.00) and
+--    the floor (1350.25) are made up; the card shows exactly these numbers.
+insert into public.web_project_mints (ns, project, chain, contract_or_slug, mint_price_usd, mint_at, check_after,
+                                      status, checked_floor_usd, checked_at, decided_by, created_by)
+select d.ns, l.project, 'base', 'test-floor-held', 1200.00, now() - interval '13 hours', interval '12 hours',
+       'above', 1350.25, now(), 'test', d.buyer_id
+  from public.deals d join public.listings l on l.ns = d.ns and l.id = d.listing_id
+ where d.ns = 'test' and d.id = 'PASTE_DEAL_ID'
+on conflict do nothing;
+insert into public.web_deal_protection (ns, deal_id, listing_id, buyer_id, project, spot_type, paid_usd, prior_deals, rate_pct, deal_completed_at)
+select d.ns, d.id, d.listing_id, d.buyer_id, l.project, upper(l.spot_type), round(d.price * d.quantity, 2), 5, 10, now() - interval '1 day'
+  from public.deals d join public.listings l on l.ns = d.ns and l.id = d.listing_id
+ where d.ns = 'test' and d.id = 'PASTE_DEAL_ID'
+on conflict do nothing;
+-- Within ~15 seconds: "No cashback on this deal" in that ticket.
+
+-- 7. What the bot recorded for it.
+select deal_id, state, channel_message_id, dm_state, attempts, last_error, done_at
+  from public.web_no_cashback_notices
+ where ns = 'test'
+ order by created_at desc;
+
+-- 8. Clean up block 6.
+delete from public.web_no_cashback_notices where ns = 'test';
+delete from public.web_deal_protection where ns = 'test';
+delete from public.web_project_mints where ns = 'test' and contract_or_slug = 'test-floor-held';
