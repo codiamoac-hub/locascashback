@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { deliver, NO_ACCESS } from '../src/deliver.js';
-import { discordError, fakeDiscord, notice, paidNotice } from './fakes.js';
+import { discordError, fakeDiscord, noneNotice, notice, paidNotice } from './fakes.js';
 
 const ctx = (discord) => ({ discord, site: 'https://locas.example', adminIds: ['111111111111111111'] });
 
@@ -86,4 +86,36 @@ test('receipt: the ticket was deleted → skipped with the reason, never sent an
 test('a Discord error while posting reaches the worker (which records it and retries)', async () => {
   const d = fakeDiscord({ postError: discordError(50013, 'Missing Permissions') });
   await assert.rejects(() => deliver(notice(), ctx(d)), /Missing Permissions/);
+});
+
+test('no cashback: posted once in the ticket, found again after a restart, tags nobody', async () => {
+  const d = fakeDiscord();
+  const r = await deliver(noneNotice(), ctx(d));
+  assert.deepEqual(r, { done: true, channel_message_id: d.ticket[0].id, dm_state: 'not_needed', dm_message_id: null, error: null });
+  assert.equal(d.ticket[0].embeds[0].title, 'No cashback on this deal');
+  assert.doesNotMatch(d.ticket[0].payload.content, /<@/);
+  const again = await deliver(noneNotice(), ctx(d));
+  assert.equal(d.calls.post, 1, 'one message in the ticket');
+  assert.equal(again.channel_message_id, r.channel_message_id);
+});
+
+test('no cashback: another deal of the same buyer in the same ticket still gets its own card', async () => {
+  const d = fakeDiscord();
+  await deliver(noneNotice(), ctx(d));
+  await deliver(noneNotice({ deal_id: '305' }), ctx(d));
+  assert.equal(d.calls.post, 2);
+});
+
+test('no cashback: ticket deleted → by DM, once; DMs closed → skipped with the reason; a public channel → never', async () => {
+  const d = fakeDiscord({ access: { state: 'gone' } });
+  const r = await deliver(noneNotice(), ctx(d));
+  assert.deepEqual([r.done, r.dm_state, d.calls.post, d.calls.dm], [true, 'sent', 0, 1]);
+  assert.equal(d.dmBox[0].embeds[0].title, 'No cashback on this deal');
+  await deliver(noneNotice(), ctx(d));
+  assert.equal(d.calls.dm, 1, 'a DM already sent is found, not resent');
+  const closed = await deliver(noneNotice(), ctx(fakeDiscord({ access: { state: 'gone' }, dmError: discordError(50007) })));
+  assert.deepEqual([closed.skipped, closed.error], [true, 'The deal ticket no longer exists and the buyer does not accept DMs.']);
+  const open = fakeDiscord({ access: { state: 'not_private', error: 'visible to everyone' } });
+  assert.deepEqual(await deliver(noneNotice(), ctx(open)), { skipped: true, error: 'visible to everyone' });
+  assert.equal(open.calls.post + open.calls.dm, 0);
 });

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createNoticeWorker, workerId } from '../src/worker.js';
 import { deliver, NO_ACCESS } from '../src/deliver.js';
-import { discordError, fakeDiscord, notice, paidNotice } from './fakes.js';
+import { discordError, fakeDiscord, noneNotice, notice, paidNotice } from './fakes.js';
 
 const quiet = { log() {}, warn() {}, error() {} };
 
@@ -74,4 +74,17 @@ test('a claim failure is logged and the bot keeps running', async () => {
 test('worker ids are unique per process and fit the database rule', () => {
   assert.match(workerId(), /^[A-Za-z0-9_.:-]{1,64}$/);
   assert.ok(workerId().endsWith(`-${process.pid}`));
+});
+
+test('"No cashback" notices come from their own outbox and are recorded there, by deal', async () => {
+  const discord = fakeDiscord();
+  const outbox = fakeOutbox([notice()]);
+  const none = [];
+  outbox.claimNone = async () => (none.length ? [] : [noneNotice()]);
+  outbox.doneNone = async (_worker, dealId, listingId, result) => { none.push([dealId, listingId, result.done]); return true; };
+  const w = createNoticeWorker({ rpc: outbox, worker: 'w1', log: quiet, deliverOne: (n) => deliver(n, { discord, site: 'https://locas.example', adminIds: [] }) });
+  assert.deepEqual(await w.tick(), { claimed: 2, posted: 2 });
+  assert.deepEqual(none, [['304', 'L7', true]]);
+  assert.deepEqual(outbox.recorded.map(([kind]) => kind), ['eligible'], 'the cashback outbox never hears about it');
+  assert.deepEqual(discord.ticket.map((m) => m.embeds[0].title), ['Cashback eligible', 'No cashback on this deal']);
 });

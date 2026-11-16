@@ -1,4 +1,4 @@
-import { eligibleCard, isOurMessage, nonceFor, receiptCard } from './cards.js';
+import { eligibleCard, idOf, isOurMessage, noCashbackCard, nonceFor, receiptCard } from './cards.js';
 
 /* 50007: the buyer does not accept DMs from server members. Retrying will not
    change that, so it is recorded and the notice is finished. */
@@ -35,14 +35,16 @@ export async function deliver(n, { discord, site, adminIds }) {
   if (access.state === 'not_private' || access.state === 'wrong_guild' || access.state === 'no_channel') {
     return { skipped: true, error: access.error };
   }
-  return n.kind === 'paid' ? receipt(n, access, discord, site) : eligible(n, access, discord, site, adminIds);
+  if (n.kind === 'paid') return receipt(n, access, discord, site);
+  const card = n.kind === 'none' ? noCashbackCard : eligibleCard;
+  return ticketAndDm(n, access, discord, (opts) => card(n, { site, adminIds, ...opts }));
 }
 
 async function inChannel(n, discord, payload) {
-  const mine = (m) => isOurMessage(m, discord.botId, n.kind, n.cashback_id);
+  const mine = (m) => isOurMessage(m, discord.botId, n.kind, idOf(n));
   return (
     (await discord.findMine(n.channel_id, mine)) ??
-    (await discord.post(n.channel_id, { ...payload, nonce: nonceFor(n.kind, n.cashback_id), enforceNonce: true }))
+    (await discord.post(n.channel_id, { ...payload, nonce: nonceFor(n.kind, idOf(n)), enforceNonce: true }))
   );
 }
 
@@ -55,12 +57,12 @@ async function receipt(n, access, discord, site) {
   return { done: true, channel_message_id: id, dm_state: 'not_needed' };
 }
 
-/* The ticket, pinging the buyer and the admins; and the same card by DM when
-   the buyer can no longer see the ticket (closed deal, left the server). */
-async function eligible(n, access, discord, site, adminIds) {
+/* "Cashback eligible" and "No cashback": the ticket, and the same card by DM
+   when the buyer can no longer see the ticket (closed deal, left the server). */
+async function ticketAndDm(n, access, discord, card) {
   let channelMessageId = n.channel_message_id ?? null;
   if (!channelMessageId && access.state === 'ok') {
-    channelMessageId = await inChannel(n, discord, eligibleCard(n, { site, adminIds }));
+    channelMessageId = await inChannel(n, discord, card());
   }
 
   const dmNeeded = access.state === 'gone' || !access.buyerCanSee;
@@ -68,9 +70,9 @@ async function eligible(n, access, discord, site, adminIds) {
   let dmMessageId = n.dm_message_id ?? null;
   let note = null;
   if (dmNeeded && dmState !== 'sent' && dmState !== 'failed') {
-    const mine = (m) => isOurMessage(m, discord.botId, 'eligible', n.cashback_id);
+    const mine = (m) => isOurMessage(m, discord.botId, n.kind, idOf(n));
     try {
-      dmMessageId = (await discord.dmFindMine(n.buyer_id, mine)) ?? (await discord.dm(n.buyer_id, eligibleCard(n, { site, dm: true })));
+      dmMessageId = (await discord.dmFindMine(n.buyer_id, mine)) ?? (await discord.dm(n.buyer_id, card({ dm: true })));
       dmState = 'sent';
     } catch (e) {
       if (e?.code !== DM_CLOSED) {

@@ -11,7 +11,7 @@ export class RpcError extends Error {
 }
 
 /**
- * The three signed RPCs of website migration 0014. Every call is signed for
+ * The signed RPCs of website migrations 0014 and 0054. Every call is signed for
  * this bot's namespace and guild; the database checks both. Only the anon
  * key is ever sent: on its own it can read nothing.
  */
@@ -43,6 +43,15 @@ export function createRpc({ url, anonKey, ns, guild, secret, fetch = globalThis.
     /** What happened to one notice. false: the lease had moved on. */
     done: (worker, cashbackId, kind, result) =>
       call('web_cashback_bot_done_v1', 'done', { p_worker: worker, p_cashback_id: cashbackId, p_kind: kind, p_result: result }),
+    /** The same pair for "No cashback" notices (website migration 0054). A
+        database without that migration has none to give. */
+    claimNone: (worker, limit) =>
+      call('web_cashback_bot_none_claim_v1', 'claim', { p_worker: worker, p_limit: limit }).catch((e) => {
+        if (e instanceof RpcError && (e.status === 404 || e.code === 'PGRST202')) return [];
+        throw e;
+      }),
+    doneNone: (worker, dealId, listingId, result) =>
+      call('web_cashback_bot_none_done_v1', 'done', { p_worker: worker, p_deal_id: dealId, p_listing_id: listingId, p_result: result }),
   };
 }
 

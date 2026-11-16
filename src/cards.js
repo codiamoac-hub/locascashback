@@ -10,8 +10,9 @@ const ELIGIBLE_THUMB = 'https://raw.githubusercontent.com/codiamoac-hub/locas-as
    and ~50 characters of footer keep the cards from rendering narrow. */
 const ELIGIBLE_FOOTER = 'LOCAS CASHBACK · Protected Buyer · claim on the website';
 const PAID_FOOTER = 'LOCAS CASHBACK · Protected Buyer · sent by the team';
+const NONE_FOOTER = 'LOCAS CASHBACK · Protected Buyer · the floor held';
 
-export const TITLES = { eligible: 'Cashback eligible', paid: 'Cashback paid' };
+export const TITLES = { eligible: 'Cashback eligible', paid: 'Cashback paid', none: 'No cashback on this deal' };
 
 /* Every card links its title to the cashback on the website. That link is
    also how the bot recognises its own earlier message after a restart: if a
@@ -20,9 +21,28 @@ export const TITLES = { eligible: 'Cashback eligible', paid: 'Cashback paid' };
 export const anchorOf = (cashbackId) => `#cashback-${cashbackId}`;
 export const claimUrl = (site, cashbackId) => `${site}/protection${anchorOf(cashbackId)}`;
 
-export function isOurMessage(message, botId, kind, cashbackId) {
+/* Where the buyer can see the floor for themselves: the collection the website's
+   check read. Built here from a checked slug, never taken as a URL. */
+const MARKETS = {
+  opensea: { label: 'View floor on OpenSea', url: (s) => `https://opensea.io/collection/${s}`, ok: /^[a-z0-9_-]{1,100}$/i },
+  magiceden: { label: 'View floor on Magic Eden', url: (s) => `https://magiceden.io/marketplace/${s}`, ok: /^[a-z0-9_-]{1,100}$/i },
+};
+export function floorLink(source, slug) {
+  const m = MARKETS[source];
+  const s = String(slug ?? '').trim();
+  return m && m.ok.test(s) ? { label: m.label, url: m.url(encodeURIComponent(s)) } : null;
+}
+
+/* A "No cashback" card has no cashback to link to: it is found again by its deal. */
+const dealAnchorOf = (dealId) => `#deal-${dealId}`;
+
+/* What a notice is about: its cashback, or its deal when there is none. */
+export const idOf = (n) => n.cashback_id ?? n.deal_id;
+
+export function isOurMessage(message, botId, kind, id) {
   if (message?.author?.id !== botId) return false;
-  return (message.embeds ?? []).some((e) => e?.title === TITLES[kind] && String(e?.url ?? '').endsWith(anchorOf(cashbackId)));
+  const anchor = kind === 'none' ? dealAnchorOf(id) : anchorOf(id);
+  return (message.embeds ?? []).some((e) => e?.title === TITLES[kind] && String(e?.url ?? '').endsWith(anchor));
 }
 
 /* Discord drops a second message with the same nonce from the same author
@@ -101,6 +121,51 @@ export function eligibleCard(n, { site }) {
     content: `Your Protected Buyer cashback on **${plain(n.project)}** is ready to claim.`,
     embeds: [embed],
     components: [row],
+    allowedMentions: { parse: [] },
+  };
+}
+
+/* ────────────────────────── no cashback ────────────────────────── */
+
+/**
+ * Posted once in the deal's ticket when a covered deal is owed nothing: the
+ * floor closed at or above the price the deal is measured against (website
+ * migration 0054). Same numbers the website decided on. Tags nobody.
+ */
+export function noCashbackCard(n, { site }) {
+  const t = typeOf(n.spot_type);
+  const priceLabel = n.threshold_label || (t?.label === 'WL' ? 'WL price' : 'Mint price');
+  const money = (v) => (v == null ? '—' : `${cents(v)} USD`);
+  /* The timer is 12 hours unless an admin moved it; say the hours only when they are whole. */
+  const hours = Number(n.check_hours);
+  const when = Number.isInteger(hours) && hours > 0 ? ` ${hours}h after the mint` : ' after the mint';
+  const link = floorLink(n.floor_source, n.floor_slug);
+
+  const embed = new EmbedBuilder()
+    .setColor(COLOR.none)
+    .setAuthor({ name: 'LOCAS CASHBACK' })
+    .setTitle(TITLES.none)
+    .setURL(`${site}/protection${dealAnchorOf(n.deal_id)}`)
+    .setDescription(
+      [
+        `Project Name : **${plain(n.project)}**`,
+        `Spot Type : **${t?.label ?? (n.spot_type ? plain(n.spot_type) : '—')}**${n.quantity ? `  ·  Quantity : **${n.quantity}**` : ''}`,
+        '',
+        `You paid : **${money(n.paid_usd)}**`,
+        `${priceLabel} : **${money(n.threshold_usd)}**`,
+        `Floor${when} : **${money(n.floor_usd)}**`,
+        '',
+        `The floor stayed at or above the ${priceLabel.replace(/^Mint/, 'mint')}, so no cashback is due on this deal.`,
+        '-# Protected Buyer pays only when the floor closes under the price.',
+      ].join('\n')
+    )
+    .setFooter({ text: NONE_FOOTER })
+    .setTimestamp(Date.now());
+
+  return {
+    content: `No cashback on your **${plain(n.project)}** deal: the floor held.`,
+    embeds: [embed],
+    components: link ? [new ActionRowBuilder().addComponents(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel(link.label).setURL(link.url))] : [],
     allowedMentions: { parse: [] },
   };
 }

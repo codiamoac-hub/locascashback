@@ -13,6 +13,10 @@ cashback created  →  "Cashback eligible" in that deal's ticket
 
 admin clicks Mark paid on the website  →  receipt in that deal's ticket, and only there
                        pings the buyer only · amount, token, network, wallet, explorer
+
+a project holds its floor  →  "No cashback on this deal" in each covered deal's ticket
+                       the price, the floor 12h after the mint and why · "View floor" button · no ping
+                       + the same card by DM if the buyer can no longer see the ticket
 ```
 
 The website decides and records; this bot only announces. It **never sends crypto and never holds a private key**: payment stays manual, by an admin, on the website.
@@ -44,6 +48,8 @@ npm run dev:test            # run against .env.test
 ### 1. The database
 
 Run **`supabase/migrations/0014_cashback_bot.sql`** from the website repo in the Supabase SQL editor, after 0012 and 0013. Without it the bot refuses to start and says so.
+
+For the "No cashback" card, also run **`supabase/migrations/0054_no_cashback_notice.sql`**. Without it the bot runs as before and posts none; projects decided more than 24 hours before it is run are never announced.
 
 ### 2. Discord
 

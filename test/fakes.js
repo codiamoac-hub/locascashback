@@ -47,5 +47,16 @@ export const notice = (over = {}) => ({
   ...over,
 });
 
+/* A "No cashback" notice as web_cashback_bot_none_claim_v1 returns it (website migration 0054). */
+export const noneNotice = (over = {}) => ({
+  kind: 'none', deal_id: '304', listing_id: 'L7', attempts: 1,
+  channel_message_id: null, dm_state: null, dm_message_id: null,
+  buyer_id: '402914829112836096', project: 'demarco', channel_id: '1542000000000000001',
+  spot_type: 'GTD', quantity: 5, paid_usd: '12.50', rate_pct: 10,
+  threshold_usd: '2.00', floor_usd: '3.40', threshold_label: 'WL price', check_hours: 12,
+  floor_source: 'opensea', floor_slug: 'asperites',
+  ...over,
+});
+
 export const paidNotice = (over = {}) =>
   notice({ kind: 'paid', status: 'paid', payout_chain: 'base', payout_asset: 'USDC', payout_address: '0x' + 'ab'.repeat(20), tx_hash: '0x' + 'cd'.repeat(32), paid_at: '2026-10-17T20:00:00.000Z', ...over });
